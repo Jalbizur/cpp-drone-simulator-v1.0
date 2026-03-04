@@ -1,0 +1,7 @@
+# ninja log v6
+18	414	7942001927556044	CMakeFiles/drone-sim.dir/src/PID.cpp.obj	6e1acea0d1ef7d31
+15	733	7942001927526039	CMakeFiles/drone-sim.dir/src/Physics.cpp.obj	10a9523ad2461909
+21	737	7942001927586055	CMakeFiles/drone-sim.dir/src/Telemetry.cpp.obj	a91f9840f923f642
+13	746	7942001927496037	CMakeFiles/drone-sim.dir/src/Drone.cpp.obj	58308aeafafb7654
+9	850	7942001927456022	CMakeFiles/drone-sim.dir/src/main.cpp.obj	dfd25460767ebdbb
+851	1801	7942001935880899	drone-sim.exe	4458f6fe71584ac8
