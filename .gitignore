@@ -1,0 +1,27 @@
+# Visual Studio
+.vs/
+*.vcxproj.user
+*.sln
+*.slnx
+
+# Build folders
+out/
+build/
+x64/
+Debug/
+Release/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+
+# Ninja
+.ninja_log
+.ninja_deps
+
+# Executables
+*.exe
+
+# Python output
+*.png
+telemetry.csv

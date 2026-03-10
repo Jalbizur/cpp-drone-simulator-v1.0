@@ -1,46 +1,95 @@
+#include <SDL.h>
 #include <iostream>
 #include <chrono>
-#include <thread>
+
 #include "Drone.h"
+#include "Physics.h"
 
-int main() {
+int main(int argc, char* argv[])
+{
+    if (SDL_Init(SDL_INIT_VIDEO) != 0)
+    {
+        std::cerr << "SDL Init Failed\n";
+        return -1;
+    }
 
-	bool running = true;
-	//SDL_Event event;
-	Drone drone;
-	drone.setTargetAltitude(2.0);
-	drone.enableLogging("telemetry.csv");
+    SDL_Window* window = SDL_CreateWindow(
+        "Drone Simulator",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        800,
+        600,
+        SDL_WINDOW_SHOWN
+    );
 
-	const double dt = 0.01; // 100 Hz sim
-	double t = 0.0;
-	const double sim_time = 10.0; //seconds
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-	std::cout << "Starting simulation for " << sim_time << "s (dt=" << dt << ")\n";
-	while (t < sim_time)
-	{
-		// Simple manual disturbance between 3s and 4s tilt target
-		if (t > 3.0 && t < 4.0)
-		{
-			drone.setTargetAngles(0.2, 0.1, 0.0); // small roll/pitch setpoint
-		}
-		else
-		{
-			drone.setTargetAngles(0.0, 0.0, 0.0);
-		}
+    if (!window || !renderer)
+    {
+        std::cerr << "Window or Renderer creation failed\n";
+        return -1;
+    }
 
-		drone.update(dt);
-		if (static_cast<int>(t * 10) % 10 == 0)
-		{
-			const auto& s = drone.state();
-			std::cout << "t=" << t << "s, z=" << s.z << "m, vz=" << s.vz << "m/s, roll=" << s.roll << "rad, pitch=" << s.pitch << "rad\n";
-		}
+    // Create physics + drone state
+    PhysicsEngine physics(1.0);
+    State state{};
+    Inputs inputs{};
 
-		t += dt;
-		std::this_thread::sleep_for(std::chrono::milliseconds(2)); // simulate real-time and be nice to CPU
-	}
+    bool running = true;
+    SDL_Event event;
 
+    auto lastTime = std::chrono::high_resolution_clock::now();
 
+    while (running)
+    {
+        // Calculate delta time
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> delta = currentTime - lastTime;
+        lastTime = currentTime;
+        double dt = delta.count();
 
-	std::cout << "Simulation complete, telemetry.csv written.\n";
-	return 0;
+        // Handle input
+        while (SDL_PollEvent(&event))
+        {
+            if (event.type == SDL_QUIT)
+                running = false;
+        }
+
+        const Uint8* keyboard = SDL_GetKeyboardState(NULL);
+
+        // Reset inputs
+        inputs.thrust = 9.81; // hover baseline
+        inputs.roll_torque = 0.0;
+        inputs.pitch_torque = 0.0;
+        inputs.yaw_torque = 0.0;
+
+        if (keyboard[SDL_SCANCODE_W]) inputs.thrust += 5.0;
+        if (keyboard[SDL_SCANCODE_S]) inputs.thrust -= 5.0;
+        if (keyboard[SDL_SCANCODE_A]) inputs.roll_torque = -0.5;
+        if (keyboard[SDL_SCANCODE_D]) inputs.roll_torque = 13.0;
+
+        // Step physics
+        physics.step(state, inputs, dt);
+
+        // Render
+        SDL_SetRenderDrawColor(renderer, 20, 20, 30, 255);
+        SDL_RenderClear(renderer);
+
+        // Convert world position to screen
+        int screenX = 400;
+        int screenY = 500 - static_cast<int>(state.z * 50.0);
+
+        SDL_Rect droneRect = { screenX - 20, screenY - 10, 40, 20 };
+
+        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+        SDL_RenderFillRect(renderer, &droneRect);
+
+        SDL_RenderPresent(renderer);
+    }
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+
+    return 0;
 }
